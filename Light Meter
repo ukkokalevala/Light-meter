@@ -1,0 +1,83 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_ADDR 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+#define LDR_PIN A0
+
+void setup() {
+  Serial.begin(9600);
+  
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+  display.clearDisplay();
+  display.display();
+  
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Light Meter");
+  display.display();
+  delay(1000);
+}
+
+void loop() {
+  // Read raw value (dark=high, light=low)
+  int raw = analogRead(LDR_PIN);
+  
+  // INVERT IT so dark=low, light=high (more intuitive)
+  int lightValue = 1023 - raw;
+  
+  // Now it works normally:
+  // Dark = low number (0-200)
+  // Bright = high number (800-1023)
+  
+  int percent = map(lightValue, 0, 1023, 0, 100);
+  
+  // Display on OLED
+  display.clearDisplay();
+  
+  // Show inverted value (now intuitive)
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Light: ");
+  display.print(lightValue);
+  
+  // Bar graph (now works correctly)
+  int barWidth = map(lightValue, 0, 1023, 0, 120);
+  display.fillRect(4, 20, barWidth, 12, SSD1306_WHITE);
+  display.drawRect(4, 20, 120, 12, SSD1306_WHITE);
+  
+  // Percentage
+  display.setTextSize(2);
+  display.setCursor(20, 40);
+  display.print(percent);
+  display.print("%");
+  
+  // Status text
+  display.setTextSize(1);
+  display.setCursor(0, 58);
+  if (lightValue < 200) {
+    display.print("DARK - Turn on light!");
+  } else if (lightValue > 800) {
+    display.print("VERY BRIGHT!");
+  } else {
+    display.print("Normal");
+  }
+  
+  display.display();
+  
+  // Serial monitor (shows both)
+  Serial.print("Raw: ");
+  Serial.print(raw);
+  Serial.print(" | Inverted: ");
+  Serial.print(lightValue);
+  Serial.print(" | ");
+  Serial.print(percent);
+  Serial.println("%");
+  
+  delay(300);
+}
